@@ -32,8 +32,7 @@ if (WiFi.status() == WL_CONNECTED) {
 //Check WiFi connection status
 HTTPClient http; //Declare an object of class
 HTTPClient
-int16_t adc0, adc1, adc2,adc3 // The analog pins of
-ADC defined as long integers
+int16_t adc0, adc1, adc2,adc3 // The analog pins of ADC defined as long integers
 adc0 = ads.readADC_SingleEnded(0);
 adc1 = ads.readADC_SingleEnded(1);
 adc2 = ads.readADC_SingleEnded(2);
