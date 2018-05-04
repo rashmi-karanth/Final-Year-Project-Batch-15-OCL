@@ -1,0 +1,112 @@
+
+//Libraries to be included from GitHub
+#include <Wire.h>
+#include <Adafruit_ADS1015.h> // for the ADS1115
+#include <DHT.h> //for Temperature and Humidity sensor
+#include <DHT_U.h>// DHT unified sensor
+#include <ESP8266WiFi.h>  //For Wi-Fi operations
+#include <ESP8266HTTPClient.h> //needed for library
+
+
+String apiKey = "SYAYF29K5E4SBVDZ";     //  Enter your Write API key from ThingSpeak
+
+const char *ssid =  "xxxxx";     // replace with your wifi ssid and password
+const char *pass =  "xxxxx";
+const char* server = "api.thingspeak.com";
+
+#define DHTPIN 13          //pin where the dht11 is connected
+
+DHT dht(DHTPIN, DHT11);
+
+Adafruit_ADS1115 ads; //for 16 bit ADS1115
+
+
+WiFiClient client;
+ 
+void setup() 
+{      Wire.begin(D2, D1);
+       Serial.begin(115200);
+       delay(10);
+       dht.begin();
+       
+       Serial.println("Connecting to ");
+       Serial.println(ssid);
+ 
+       WiFi.begin(ssid, pass);
+ 
+      while (WiFi.status() != WL_CONNECTED) 
+     {
+            delay(500);
+            Serial.print(".");
+     }
+      Serial.println("");
+      Serial.println("WiFi connected");
+
+ Serial.println("Getting single-ended readings from ADS");
+ Serial.println("ADC Range: +/- 6.144V (1 bit = 3mV/ADS1015,  0.1875mV/ADS1115)");
+ ads.begin(); //setup of ADS
+
+
+ 
+}
+ 
+void loop() 
+{ 
+       int16_t adc0, adc1, adc2,adc3 // The analog pins of ADC defined as 	long integers
+	adc0 = ads.readADC_SingleEnded(0);
+	adc1 = ads.readADC_SingleEnded(1);
+	adc2 = ads.readADC_SingleEnded(2);
+	adc3 = ads.readADC_SingleEnded(2);
+
+	float v1= (adc0*0.1875)/1000;
+	float v2=(adc1*0.1875)/1000;
+	float v3=(adc2*0.1875)/1000;
+	float v4=(adc3*0.1875)/1000;
+
+
+      float h = dht.readHumidity();
+      float t = dht.readTemperature();
+      
+              
+                         if (client.connect(server,80))   //   "184.106.153.149" or api.thingspeak.com
+                      {  
+                            
+                             String postStr = apiKey;
+			 
+			     postStr +="&field1=";
+                             postStr += String(v1);
+                             postStr +="&field2=";
+                             postStr += String(v2);
+			     postStr +="&field3=";
+                             postStr += String(v3);
+                             postStr +="&field4=";
+                             postStr += String(v4);
+                             postStr +="&field5=";
+                             postStr += String(t);
+                             postStr +="&field6=";
+                             postStr += String(h);
+                             postStr += "\r\n\r\n";
+ 
+                             client.print("POST /update HTTP/1.1\n");
+                             client.print("Host: api.thingspeak.com\n");
+                             client.print("Connection: close\n");
+                             client.print("X-THINGSPEAKAPIKEY: "+apiKey+"\n");
+                             client.print("Content-Type: application/x-www-form-urlencoded\n");
+                             client.print("Content-Length: ");
+                             client.print(postStr.length());
+                             client.print("\n\n");
+                             client.print(postStr);
+ 
+                             Serial.print("Temperature: ");
+                             Serial.print(t);
+                             Serial.print(" degrees Celcius, Humidity: ");
+                             Serial.print(h);
+                             Serial.println("%. Send to Thingspeak.");
+                        }
+          client.stop();
+ 
+          Serial.println("Waiting...");
+  
+  // thingspeak needs minimum 15 sec delay between updates, i've set it to 30 seconds
+  delay(10000);
+}
