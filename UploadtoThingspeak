@@ -1,68 +1,99 @@
 
-//Libraries to be included from GitHub
+/*----------------------Libraries to be included from GitHub------------------------*/
 #include <Wire.h>
 #include <Adafruit_ADS1015.h> // for the ADS1115
 #include <DHT.h> //for Temperature and Humidity sensor
 #include <DHT_U.h>// DHT unified sensor
 #include <ESP8266WiFi.h>  //For Wi-Fi operations
 #include <ESP8266HTTPClient.h> //needed for library
+#include <DNSServer.h>
+#include <ESP8266WebServer.h> // For creation of online web server
+#include <WiFiManager.h>
 
-
+/*-------------------Variables and Initializations----------------------------------*/
 String apiKey = "SYAYF29K5E4SBVDZ";     //  Enter your Write API key from ThingSpeak
-
-const char *ssid =  "xxxxx";     // replace with your wifi ssid and password
-const char *pass =  "xxxxx";
 const char* server = "api.thingspeak.com";
-
 #define DHTPIN 13          //pin where the dht11 is connected
-
 DHT dht(DHTPIN, DHT11);
-
 Adafruit_ADS1115 ads; //for 16 bit ADS1115
-
-
 WiFiClient client;
- 
+
+
+/*-----------------------------Setup-------------------------------------------*/
 void setup() 
 {      Wire.begin(D2, D1);
        Serial.begin(115200);
        delay(10);
        dht.begin();
-       
-       Serial.println("Connecting to ");
-       Serial.println(ssid);
- 
-       WiFi.begin(ssid, pass);
- 
-      while (WiFi.status() != WL_CONNECTED) 
+       WiFiManager wifiManager; //To create web server
+       wifiManager.resetSettings();
+       wifiManager.autoConnect("OCLEMS"); //access point name of the NodeMCU
+ while (WiFi.status() != WL_CONNECTED) 
      {
             delay(500);
             Serial.print(".");
      }
-      Serial.println("");
-      Serial.println("WiFi connected");
+Serial.println("connected...yay :)");
 
  Serial.println("Getting single-ended readings from ADS");
  Serial.println("ADC Range: +/- 6.144V (1 bit = 3mV/ADS1015,  0.1875mV/ADS1115)");
  ads.begin(); //setup of ADS
 
 
- 
+/*--------------------Loop--------------------------------------------------------------*/
 }
  
 void loop() 
 { 
-       int16_t adc0, adc1, adc2,adc3 // The analog pins of ADC defined as 	long integers
+       int16_t adc0, adc1, adc2,adc3; // The analog pins of ADC defined as 	long integers
 	adc0 = ads.readADC_SingleEnded(0);
 	adc1 = ads.readADC_SingleEnded(1);
 	adc2 = ads.readADC_SingleEnded(2);
 	adc3 = ads.readADC_SingleEnded(2);
 
-	float v1= (adc0*0.1875)/1000;
-	float v2=(adc1*0.1875)/1000;
-	float v3=(adc2*0.1875)/1000;
-	float v4=(adc3*0.1875)/1000;
+	float v1= adc0*0.0384;    // The conversion is from 16 Bit to 8 Bit 
+	float v2=adc1*0.0384;	  // Formula is ---->   [(16Bit value*0.1875)/1000]*(1024/5)
+	float v3=adc2*0.0384;
+	float v4=adc3*0.0384;
+	
+	int value1;	//For UV index
+	char value2;	//For Detecting Rain
+	
 
+	if(v3<10)	//UV index conditions
+	value1=0;
+	if(v3>=10 && v3<46)
+	value1=1;
+	if(v3>=46 && v3<65)
+	value1=2;
+	if(v3>=65 && v3<83)
+	value1=3;
+	if(v3>=83 && v3<103)
+	value1=4;
+	if(v3>=103 && v3<124)
+	value1=5;
+	if(v3>=124 && v3<142)
+	value1=6;
+	if(v3>=142 && v3<162)
+	value1=7;
+	if(v3>=162 && v3<180)
+	value1=8;
+	if(v3>=180 && v3<200)
+	value1=9;
+	if(v3>=200 && v3<221)
+	value1=10;
+	if(v3>=221 && v3<240)
+	value1=11;
+	if(v3>=240)
+	value1=12;
+
+
+        if(v1>=0 && v1<500)	//Rain check
+	{ value2='y'; } // It is raining
+ 	if(v1>=500 && v1<=1023)
+	{ value2='n'; } // It is not Raining 
+
+	
 
       float h = dht.readHumidity();
       float t = dht.readTemperature();
@@ -78,7 +109,7 @@ void loop()
                              postStr +="&field2=";
                              postStr += String(v2);
 			     postStr +="&field3=";
-                             postStr += String(v3);
+                             postStr += String(value1);
                              postStr +="&field4=";
                              postStr += String(v4);
                              postStr +="&field5=";
@@ -96,11 +127,23 @@ void loop()
                              client.print(postStr.length());
                              client.print("\n\n");
                              client.print(postStr);
- 
-                             Serial.print("Temperature: ");
-                             Serial.print(t);
-                             Serial.print(" degrees Celcius, Humidity: ");
-                             Serial.print(h);
+ 				
+			     Serial.println("Is it Raining?: ");
+                             Serial.println(value2);
+                             Serial.println(" Light Intensity: ");
+                             Serial.println(v2);
+                             Serial.println("UV Index: ");
+                             Serial.println(value1);
+                             Serial.println(" Gas Level: ");
+                             Serial.println(v4);
+			     Serial.println(" Temperature: ");
+                             Serial.println(t);
+			     Serial.println(" Relative Humidity: ");
+                             Serial.println(h);
+
+
+
+
                              Serial.println("%. Send to Thingspeak.");
                         }
           client.stop();
