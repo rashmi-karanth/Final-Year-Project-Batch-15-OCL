@@ -58,9 +58,13 @@ void loop()
 	
 	int value1;	//For UV index
 	char value2;	//For Detecting Rain
+	float illum;
+	int uvindex;
 	
+	illum=307*adc2;
+	uvindex=illum/200;
 
-	if(v3<10)	//UV index conditions
+	/*if(v3<10)	//UV index conditions
 	value1=0;
 	if(v3>=10 && v3<46)
 	value1=1;
@@ -85,7 +89,7 @@ void loop()
 	if(v3>=221 && v3<240)
 	value1=11;
 	if(v3>=240)
-	value1=12;
+	value1=12; */
 
 
         if(v1>=0 && v1<500)	//Rain check
@@ -109,7 +113,7 @@ void loop()
                              postStr +="&field2=";
                              postStr += String(v2);
 			     postStr +="&field3=";
-                             postStr += String(value1);
+                             postStr += String(uvindex);
                              postStr +="&field4=";
                              postStr += String(v4);
                              postStr +="&field5=";
@@ -133,7 +137,7 @@ void loop()
                              Serial.println(" Light Intensity: ");
                              Serial.println(v2);
                              Serial.println("UV Index: ");
-                             Serial.println(value1);
+                             Serial.println(uvindex);
                              Serial.println(" Gas Level: ");
                              Serial.println(v4);
 			     Serial.println(" Temperature: ");
